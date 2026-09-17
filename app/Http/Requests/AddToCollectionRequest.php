@@ -13,6 +13,7 @@ class AddToCollectionRequest extends FormRequest
     {
         return [
             'discogs_id' => ['required', 'integer'],
+            'wishlist_item_id' => ['nullable', 'integer'],
         ];
     }
 }

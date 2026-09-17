@@ -35,6 +35,7 @@ class CollectionController extends Controller
         $item = $this->collectionService->addRelease(
             user: $user,
             discogsId: $request->integer('discogs_id'),
+            wishlistItemId: $request->integer('wishlist_item_id') ?: null,
         );
 
         $item->load('release');

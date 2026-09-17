@@ -12,16 +12,26 @@ class ReleaseResource extends JsonResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
+        $raw = $this->resource;
+        [$artist, $title] = $this->splitTitle((string) ($raw['title'] ?? ''));
+
         return [
-            'id' => $this->resource['id'],
-            'title' => $this->resource['title'],
-            'year' => $this->resource['year'] ?? null,
-            'thumb' => $this->resource['thumb'] ?? null,
-            'cover_image' => $this->resource['cover_image'] ?? null,
-            'label' => $this->resource['label'] ?? [],
-            'format' => $this->resource['format'] ?? [],
-            'genre' => $this->resource['genre'] ?? [],
-            'country' => $this->resource['country'] ?? null,
+            'id' => $raw['id'],
+            'title' => $title,
+            'artist' => $artist,
+            'year' => isset($raw['year']) && $raw['year'] !== '' ? (int) $raw['year'] : null,
+            'label' => ($raw['label'] ?? [])[0] ?? null,
+            'cover_url' => $raw['cover_image'] ?? $raw['thumb'] ?? null,
+            'genres' => $raw['genre'] ?? [],
+            'styles' => $raw['style'] ?? [],
         ];
+    }
+
+    /** @return array{string, string} */
+    private function splitTitle(string $title): array
+    {
+        $parts = explode(' - ', $title, 2);
+
+        return count($parts) === 2 ? [$parts[0], $parts[1]] : ['', $title];
     }
 }

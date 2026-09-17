@@ -9,6 +9,8 @@ use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\Release;
 use App\Models\User;
+use App\Models\Wishlist;
+use App\Models\WishlistItem;
 
 beforeEach(function (): void {
     $this->user = User::factory()->create();
@@ -104,6 +106,40 @@ describe('POST /collection/items', function (): void {
             ->postJson('/api/collection/items', ['discogs_id' => $release->discogs_id])
             ->assertUnprocessable()
             ->assertJsonPath('message', "Release {$release->discogs_id} is already in your collection.");
+    });
+
+    it('removes the wishlist item when wishlist_item_id is provided', function (): void {
+        $release = Release::factory()->create();
+        $wishlist = Wishlist::factory()->create(['user_id' => $this->user->id]);
+        $wishlistItem = WishlistItem::factory()->create([
+            'wishlist_id' => $wishlist->id,
+            'release_id' => $release->id,
+        ]);
+
+        $this->actingAs($this->user)
+            ->postJson('/api/collection/items', [
+                'discogs_id' => $release->discogs_id,
+                'wishlist_item_id' => $wishlistItem->id,
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('collection_items', ['release_id' => $release->id]);
+        $this->assertDatabaseMissing('wishlist_items', ['id' => $wishlistItem->id]);
+    });
+
+    it('rolls back if the wishlist_item_id belongs to another user', function (): void {
+        $release = Release::factory()->create();
+        $otherWishlistItem = WishlistItem::factory()->create(['release_id' => $release->id]);
+
+        $this->actingAs($this->user)
+            ->postJson('/api/collection/items', [
+                'discogs_id' => $release->discogs_id,
+                'wishlist_item_id' => $otherWishlistItem->id,
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseMissing('collection_items', ['release_id' => $release->id]);
+        $this->assertDatabaseHas('wishlist_items', ['id' => $otherWishlistItem->id]);
     });
 
     it('requires authentication', function (): void {
