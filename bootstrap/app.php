@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\DuplicateCollectionItemException;
 use App\Exceptions\ReleaseNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,5 +24,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (ReleaseNotFoundException $e) {
             return response()->json(['message' => $e->getMessage()], 404);
+        });
+
+        $exceptions->render(function (DuplicateCollectionItemException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         });
     })->create();
