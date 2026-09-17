@@ -15,6 +15,8 @@ final class FakeDiscogsClient implements DiscogsClient
     /** @var array<int, array<string, mixed>> */
     private array $releases = [];
 
+    private int $getReleaseCalls = 0;
+
     /** @param array<string, mixed> $response */
     public function fakeSearch(array $response): void
     {
@@ -33,6 +35,11 @@ final class FakeDiscogsClient implements DiscogsClient
         $this->releases[$id] = $release;
     }
 
+    public function getReleaseCalls(): int
+    {
+        return $this->getReleaseCalls;
+    }
+
     /** @return array<string, mixed> */
     public function searchReleases(string $query, int $page = 1): array
     {
@@ -48,6 +55,8 @@ final class FakeDiscogsClient implements DiscogsClient
     /** @return array<string, mixed> */
     public function getRelease(int $id): array
     {
+        $this->getReleaseCalls++;
+
         return $this->releases[$id]
             ?? throw new \RuntimeException("No fake release configured for id {$id}.");
     }

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SearchReleasesRequest;
+use App\Http\Resources\CachedReleaseResource;
 use App\Http\Resources\ReleaseCollection;
 use App\Services\ReleaseService;
+use Illuminate\Http\JsonResponse;
 
 class ReleaseController extends Controller
 {
@@ -20,5 +22,12 @@ class ReleaseController extends Controller
         );
 
         return new ReleaseCollection($response);
+    }
+
+    public function barcode(string $barcode): JsonResponse
+    {
+        return (new CachedReleaseResource(
+            $this->releaseService->findByBarcode($barcode),
+        ))->response()->setStatusCode(200);
     }
 }
