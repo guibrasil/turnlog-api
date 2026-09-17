@@ -1,0 +1,252 @@
+{
+    "info": {
+        "_postman_id": "turnlog-api",
+        "name": "TurnLog API",
+        "description": "TurnLog vinyl catalogue API. Register first — the token is captured automatically and reused for every authenticated request.\n\nVariables managed automatically:\n- `token` — set on Register / Login\n- `discogs_id` — set on Search (first result) and Barcode Lookup\n- `item_id` — set on Add to Collection",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost:8000/api",
+            "type": "string"
+        },
+        {
+            "key": "token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "discogs_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "item_id",
+            "value": "",
+            "type": "string"
+        }
+    ],
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Register",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.data && json.data.token) {",
+                                    "    pm.collectionVariables.set('token', json.data.token);",
+                                    "    console.log('Token saved.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": { "type": "noauth" },
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Gui\",\n    \"email\": \"gui@example.com\",\n    \"password\": \"password\",\n    \"password_confirmation\": \"password\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/register",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "register"]
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.data && json.data.token) {",
+                                    "    pm.collectionVariables.set('token', json.data.token);",
+                                    "    console.log('Token saved.');",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": { "type": "noauth" },
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"gui@example.com\",\n    \"password\": \"password\"\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "login"]
+                        }
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/auth/logout",
+                            "host": ["{{base_url}}"],
+                            "path": ["auth", "logout"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Releases",
+            "item": [
+                {
+                    "name": "Search",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.data && json.data[0] && json.data[0].id) {",
+                                    "    pm.collectionVariables.set('discogs_id', String(json.data[0].id));",
+                                    "    console.log('discogs_id saved:', json.data[0].id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/releases/search?q=pink+floyd",
+                            "host": ["{{base_url}}"],
+                            "path": ["releases", "search"],
+                            "query": [
+                                { "key": "q", "value": "pink+floyd" },
+                                { "key": "page", "value": "1", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Barcode Lookup",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.data && json.data.id) {",
+                                    "    pm.collectionVariables.set('discogs_id', String(json.data.id));",
+                                    "    console.log('discogs_id saved:', json.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/releases/barcode/5099749524224",
+                            "host": ["{{base_url}}"],
+                            "path": ["releases", "barcode", "5099749524224"]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Collection",
+            "item": [
+                {
+                    "name": "My Collection",
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/collection",
+                            "host": ["{{base_url}}"],
+                            "path": ["collection"],
+                            "query": [
+                                { "key": "page", "value": "1", "disabled": true }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Add to Collection",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const json = pm.response.json();",
+                                    "if (json.data && json.data.id) {",
+                                    "    pm.collectionVariables.set('item_id', String(json.data.id));",
+                                    "    console.log('item_id saved:', json.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"discogs_id\": {{discogs_id}}\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/collection/items",
+                            "host": ["{{base_url}}"],
+                            "path": ["collection", "items"]
+                        }
+                    }
+                },
+                {
+                    "name": "Remove from Collection",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/collection/items/{{item_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["collection", "items", "{{item_id}}"]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
