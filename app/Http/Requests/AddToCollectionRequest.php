@@ -12,7 +12,7 @@ class AddToCollectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'discogs_id' => ['required', 'integer', 'exists:releases,discogs_id'],
+            'discogs_id' => ['required', 'integer'],
         ];
     }
 }

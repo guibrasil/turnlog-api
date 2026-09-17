@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Discogs\DiscogsClient;
 use App\Exceptions\DuplicateCollectionItemException;
 use App\Models\Collection;
 use App\Models\CollectionItem;
@@ -13,6 +14,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 
 class CollectionService
 {
+    public function __construct(
+        private readonly DiscogsClient $discogs,
+        private readonly ReleaseImporter $importer,
+    ) {}
+
     public function getItems(User $user, int $page = 1): LengthAwarePaginator
     {
         $collection = Collection::firstOrCreate(
@@ -33,7 +39,8 @@ class CollectionService
             ['name' => 'My Collection'],
         );
 
-        $release = Release::where('discogs_id', $discogsId)->firstOrFail();
+        $release = Release::where('discogs_id', $discogsId)->first()
+            ?? $this->importer->import($this->discogs->getRelease($discogsId));
 
         if ($collection->items()->where('release_id', $release->id)->exists()) {
             throw new DuplicateCollectionItemException(

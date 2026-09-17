@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Discogs\DiscogsClient;
+use App\Discogs\FakeDiscogsClient;
+use App\Exceptions\Discogs\DiscogsNotFoundException;
 use App\Models\Collection;
 use App\Models\CollectionItem;
 use App\Models\Release;
@@ -59,11 +62,34 @@ describe('POST /collection/items', function (): void {
         ]);
     });
 
-    it('returns 422 when the release is not in the local cache', function (): void {
+    it('returns 404 when the release does not exist on Discogs', function (): void {
+        $fake = new FakeDiscogsClient;
+        $fake->failWith(new DiscogsNotFoundException('Release not found on Discogs.'));
+        $this->app->instance(DiscogsClient::class, $fake);
+
         $this->actingAs($this->user)
             ->postJson('/api/collection/items', ['discogs_id' => 999999999])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['discogs_id']);
+            ->assertNotFound()
+            ->assertJsonFragment(['message' => 'Release not found on Discogs.']);
+    });
+
+    it('imports and adds a release from Discogs when not in local cache', function (): void {
+        $fake = new FakeDiscogsClient;
+        $fake->fakeRelease(249504, [
+            'id' => 249504,
+            'title' => 'The Dark Side of the Moon',
+            'year' => 1973,
+            'artists' => [['name' => 'Pink Floyd']],
+            'images' => [],
+        ]);
+        $this->app->instance(DiscogsClient::class, $fake);
+
+        $this->actingAs($this->user)
+            ->postJson('/api/collection/items', ['discogs_id' => 249504])
+            ->assertCreated()
+            ->assertJsonPath('data.release.id', 249504);
+
+        $this->assertDatabaseHas('releases', ['discogs_id' => 249504]);
     });
 
     it('returns 422 when the release is already in the collection', function (): void {
