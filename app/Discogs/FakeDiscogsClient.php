@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Discogs;
 
+use App\Exceptions\Discogs\DiscogsException;
+
 final class FakeDiscogsClient implements DiscogsClient
 {
     /** @var array<string, mixed> */
@@ -16,6 +18,8 @@ final class FakeDiscogsClient implements DiscogsClient
     private array $releases = [];
 
     private int $getReleaseCalls = 0;
+
+    private ?DiscogsException $nextException = null;
 
     /** @param array<string, mixed> $response */
     public function fakeSearch(array $response): void
@@ -35,6 +39,11 @@ final class FakeDiscogsClient implements DiscogsClient
         $this->releases[$id] = $release;
     }
 
+    public function failWith(DiscogsException $exception): void
+    {
+        $this->nextException = $exception;
+    }
+
     public function getReleaseCalls(): int
     {
         return $this->getReleaseCalls;
@@ -43,21 +52,35 @@ final class FakeDiscogsClient implements DiscogsClient
     /** @return array<string, mixed> */
     public function searchReleases(string $query, int $page = 1): array
     {
+        $this->throwIfConfigured();
+
         return $this->searchResults;
     }
 
     /** @return array<string, mixed> */
     public function searchByBarcode(string $barcode): array
     {
+        $this->throwIfConfigured();
+
         return $this->barcodeResults[$barcode] ?? ['results' => [], 'pagination' => []];
     }
 
     /** @return array<string, mixed> */
     public function getRelease(int $id): array
     {
+        $this->throwIfConfigured();
         $this->getReleaseCalls++;
 
         return $this->releases[$id]
             ?? throw new \RuntimeException("No fake release configured for id {$id}.");
+    }
+
+    private function throwIfConfigured(): void
+    {
+        if ($this->nextException !== null) {
+            $exception = $this->nextException;
+            $this->nextException = null;
+            throw $exception;
+        }
     }
 }

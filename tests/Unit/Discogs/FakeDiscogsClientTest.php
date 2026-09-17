@@ -3,6 +3,10 @@
 declare(strict_types=1);
 
 use App\Discogs\FakeDiscogsClient;
+use App\Exceptions\Discogs\DiscogsException;
+use App\Exceptions\Discogs\DiscogsNotFoundException;
+use App\Exceptions\Discogs\DiscogsRateLimitException;
+use App\Exceptions\Discogs\DiscogsServerException;
 
 it('returns configured search results', function (): void {
     $fake = new FakeDiscogsClient;
@@ -61,4 +65,43 @@ it('throws when no fake release is configured for an id', function (): void {
     $fake = new FakeDiscogsClient;
 
     expect(fn () => $fake->getRelease(9999))->toThrow(RuntimeException::class);
+});
+
+it('throws the configured exception on the next call', function (): void {
+    $fake = new FakeDiscogsClient;
+    $fake->failWith(new DiscogsRateLimitException('rate limited', 30));
+
+    expect(fn () => $fake->searchReleases('any'))
+        ->toThrow(DiscogsRateLimitException::class, 'rate limited');
+});
+
+it('clears the exception after one throw', function (): void {
+    $fake = new FakeDiscogsClient;
+    $fake->fakeSearch(['results' => [], 'pagination' => []]);
+    $fake->failWith(new DiscogsException('boom'));
+
+    try {
+        $fake->searchReleases('first');
+    } catch (DiscogsException) {
+        // expected
+    }
+
+    // Second call must succeed.
+    expect($fake->searchReleases('second'))->toHaveKey('results');
+});
+
+it('failWith works for barcode search', function (): void {
+    $fake = new FakeDiscogsClient;
+    $fake->failWith(new DiscogsServerException('server error'));
+
+    expect(fn () => $fake->searchByBarcode('123456789'))
+        ->toThrow(DiscogsServerException::class);
+});
+
+it('failWith works for getRelease', function (): void {
+    $fake = new FakeDiscogsClient;
+    $fake->failWith(new DiscogsNotFoundException('not found'));
+
+    expect(fn () => $fake->getRelease(1))
+        ->toThrow(DiscogsNotFoundException::class);
 });
