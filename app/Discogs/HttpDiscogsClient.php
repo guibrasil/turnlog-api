@@ -27,6 +27,8 @@ final class HttpDiscogsClient implements DiscogsClient
         return $this->get('/database/search', [
             'q' => $query,
             'type' => 'release',
+            'format' => 'Vinyl',
+            'status' => 'Official',
             'page' => $page,
         ]);
     }

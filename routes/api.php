@@ -26,4 +26,6 @@ Route::middleware('auth:sanctum')->prefix('releases')->group(function (): void {
     Route::get('search', [ReleaseController::class, 'search']);
     Route::get('barcode/{barcode}', [ReleaseController::class, 'barcode'])
         ->where('barcode', '[0-9]+');
+    Route::get('{discogsId}', [ReleaseController::class, 'show'])
+        ->where('discogsId', '[0-9]+');
 });

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\SearchReleasesRequest;
 use App\Http\Resources\CachedReleaseResource;
 use App\Http\Resources\ReleaseCollection;
+use App\Http\Resources\ReleaseDetailResource;
 use App\Services\ReleaseService;
 use Illuminate\Http\JsonResponse;
 
@@ -22,6 +23,13 @@ class ReleaseController extends Controller
         );
 
         return new ReleaseCollection($response);
+    }
+
+    public function show(int $discogsId): JsonResponse
+    {
+        return (new ReleaseDetailResource(
+            $this->releaseService->find($discogsId),
+        ))->response()->setStatusCode(200);
     }
 
     public function barcode(string $barcode): JsonResponse
