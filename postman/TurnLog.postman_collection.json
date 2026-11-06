@@ -2,7 +2,7 @@
     "info": {
         "_postman_id": "turnlog-api",
         "name": "TurnLog API",
-        "description": "TurnLog vinyl catalogue API. Register first — the token is captured automatically and reused for every authenticated request.\n\nVariables managed automatically:\n- `token` — set on Register / Login\n- `discogs_id` — set on Search (first result) and Barcode Lookup\n- `item_id` — set on Add to Collection",
+        "description": "TurnLog vinyl catalogue API.\n\n**Flow to get started:**\n1. Register (or Login) — token is captured automatically\n2. Search releases or scan a barcode — `discogs_id` is captured from the first result\n3. Add to Collection or Wishlist — `item_id` / `wishlist_item_id` are captured\n4. Remove or move items as needed\n\n**Variables managed automatically:**\n- `token` — set on Register / Login\n- `discogs_id` — set on Search (first result) and Barcode Lookup\n- `item_id` — set on Add to Collection\n- `wishlist_item_id` — set on Add to Wishlist\n\n**Switching environments:**\nChange `base_url` to `http://localhost:8000/api` for local or `https://turnlog-api-production.up.railway.app/api` for Railway.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "auth": {
@@ -19,7 +19,8 @@
         {
             "key": "base_url",
             "value": "http://localhost:8000/api",
-            "type": "string"
+            "type": "string",
+            "description": "Switch to https://turnlog-api-production.up.railway.app/api for Railway"
         },
         {
             "key": "token",
@@ -33,6 +34,11 @@
         },
         {
             "key": "item_id",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "wishlist_item_id",
             "value": "",
             "type": "string"
         }
@@ -52,7 +58,9 @@
                                     "if (json.data && json.data.token) {",
                                     "    pm.collectionVariables.set('token', json.data.token);",
                                     "    console.log('Token saved.');",
-                                    "}"
+                                    "}",
+                                    "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                                    "pm.test('Has token', () => pm.expect(json.data.token).to.be.a('string'));"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -71,7 +79,8 @@
                             "raw": "{{base_url}}/auth/register",
                             "host": ["{{base_url}}"],
                             "path": ["auth", "register"]
-                        }
+                        },
+                        "description": "Creates a new user and returns a Sanctum token. Token is saved automatically to `{{token}}`."
                     }
                 },
                 {
@@ -85,7 +94,9 @@
                                     "if (json.data && json.data.token) {",
                                     "    pm.collectionVariables.set('token', json.data.token);",
                                     "    console.log('Token saved.');",
-                                    "}"
+                                    "}",
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Has token', () => pm.expect(json.data.token).to.be.a('string'));"
                                 ],
                                 "type": "text/javascript"
                             }
@@ -104,11 +115,23 @@
                             "raw": "{{base_url}}/auth/login",
                             "host": ["{{base_url}}"],
                             "path": ["auth", "login"]
-                        }
+                        },
+                        "description": "Logs in and returns a Sanctum token. Token is saved automatically to `{{token}}`."
                     }
                 },
                 {
                     "name": "Logout",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "POST",
                         "header": [{ "key": "Accept", "value": "application/json" }],
@@ -116,7 +139,41 @@
                             "raw": "{{base_url}}/auth/logout",
                             "host": ["{{base_url}}"],
                             "path": ["auth", "logout"]
+                        },
+                        "description": "Revokes the current token. Requires `{{token}}` to be set."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Profile",
+            "item": [
+                {
+                    "name": "My Profile",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "const json = pm.response.json();",
+                                    "pm.test('Has user data', () => pm.expect(json.data).to.have.property('email'));",
+                                    "pm.test('Has collection count', () => pm.expect(json.data).to.have.property('collection_count'));",
+                                    "pm.test('Has wishlist count', () => pm.expect(json.data).to.have.property('wishlist_count'));"
+                                ],
+                                "type": "text/javascript"
+                            }
                         }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/profile",
+                            "host": ["{{base_url}}"],
+                            "path": ["profile"]
+                        },
+                        "description": "Returns the authenticated user's name, email, collection count, and wishlist count."
                     }
                 }
             ]
@@ -131,7 +188,9 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
                                     "const json = pm.response.json();",
+                                    "pm.test('Returns array', () => pm.expect(json.data).to.be.an('array'));",
                                     "if (json.data && json.data[0] && json.data[0].id) {",
                                     "    pm.collectionVariables.set('discogs_id', String(json.data[0].id));",
                                     "    console.log('discogs_id saved:', json.data[0].id);",
@@ -149,10 +208,11 @@
                             "host": ["{{base_url}}"],
                             "path": ["releases", "search"],
                             "query": [
-                                { "key": "q", "value": "pink+floyd" },
-                                { "key": "page", "value": "1", "disabled": true }
+                                { "key": "q", "value": "pink+floyd", "description": "Search query (artist, album, label…)" },
+                                { "key": "page", "value": "1", "disabled": true, "description": "Page number" }
                             ]
-                        }
+                        },
+                        "description": "Searches Discogs. The first result's `id` is saved to `{{discogs_id}}`."
                     }
                 },
                 {
@@ -162,7 +222,9 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
                                     "const json = pm.response.json();",
+                                    "pm.test('Has release id', () => pm.expect(json.data.id).to.be.a('number'));",
                                     "if (json.data && json.data.id) {",
                                     "    pm.collectionVariables.set('discogs_id', String(json.data.id));",
                                     "    console.log('discogs_id saved:', json.data.id);",
@@ -178,8 +240,43 @@
                         "url": {
                             "raw": "{{base_url}}/releases/barcode/5099749524224",
                             "host": ["{{base_url}}"],
-                            "path": ["releases", "barcode", "5099749524224"]
+                            "path": ["releases", "barcode", "5099749524224"],
+                            "variable": [
+                                {
+                                    "key": "barcode",
+                                    "value": "5099749524224",
+                                    "description": "EAN/UPC barcode digits only"
+                                }
+                            ]
+                        },
+                        "description": "Looks up a release by barcode. Result's `id` is saved to `{{discogs_id}}`.\n\nExample barcode: `5099749524224` (Pink Floyd – The Wall)."
+                    }
+                },
+                {
+                    "name": "Release Detail",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "const json = pm.response.json();",
+                                    "pm.test('Has title', () => pm.expect(json.data.title).to.be.a('string'));",
+                                    "pm.test('Has tracklist', () => pm.expect(json.data.tracklist).to.be.an('array'));"
+                                ],
+                                "type": "text/javascript"
+                            }
                         }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/releases/{{discogs_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["releases", "{{discogs_id}}"]
+                        },
+                        "description": "Returns full detail for a release (tracklist, labels, formats, etc.). Uses `{{discogs_id}}` — run Search or Barcode Lookup first."
                     }
                 }
             ]
@@ -189,6 +286,18 @@
             "item": [
                 {
                     "name": "My Collection",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Returns array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "GET",
                         "header": [{ "key": "Accept", "value": "application/json" }],
@@ -199,7 +308,8 @@
                             "query": [
                                 { "key": "page", "value": "1", "disabled": true }
                             ]
-                        }
+                        },
+                        "description": "Lists the authenticated user's vinyl collection."
                     }
                 },
                 {
@@ -209,7 +319,9 @@
                             "listen": "test",
                             "script": {
                                 "exec": [
+                                    "pm.test('Status 201', () => pm.response.to.have.status(201));",
                                     "const json = pm.response.json();",
+                                    "pm.test('Has item id', () => pm.expect(json.data.id).to.be.a('number'));",
                                     "if (json.data && json.data.id) {",
                                     "    pm.collectionVariables.set('item_id', String(json.data.id));",
                                     "    console.log('item_id saved:', json.data.id);",
@@ -231,11 +343,23 @@
                             "raw": "{{base_url}}/collection/items",
                             "host": ["{{base_url}}"],
                             "path": ["collection", "items"]
-                        }
+                        },
+                        "description": "Adds a release to the collection. Auto-imports the release from Discogs if not cached locally. `item_id` is saved from the response."
                     }
                 },
                 {
                     "name": "Remove from Collection",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
                     "request": {
                         "method": "DELETE",
                         "header": [{ "key": "Accept", "value": "application/json" }],
@@ -243,7 +367,100 @@
                             "raw": "{{base_url}}/collection/items/{{item_id}}",
                             "host": ["{{base_url}}"],
                             "path": ["collection", "items", "{{item_id}}"]
+                        },
+                        "description": "Removes an item from the collection by `item_id`."
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Wishlist",
+            "item": [
+                {
+                    "name": "My Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                                    "pm.test('Returns array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                                ],
+                                "type": "text/javascript"
+                            }
                         }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist",
+                            "host": ["{{base_url}}"],
+                            "path": ["wishlist"],
+                            "query": [
+                                { "key": "page", "value": "1", "disabled": true }
+                            ]
+                        },
+                        "description": "Lists the authenticated user's wishlist."
+                    }
+                },
+                {
+                    "name": "Add to Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                                    "const json = pm.response.json();",
+                                    "pm.test('Has item id', () => pm.expect(json.data.id).to.be.a('number'));",
+                                    "if (json.data && json.data.id) {",
+                                    "    pm.collectionVariables.set('wishlist_item_id', String(json.data.id));",
+                                    "    console.log('wishlist_item_id saved:', json.data.id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"discogs_id\": {{discogs_id}}\n}",
+                            "options": { "raw": { "language": "json" } }
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/items",
+                            "host": ["{{base_url}}"],
+                            "path": ["wishlist", "items"]
+                        },
+                        "description": "Adds a release to the wishlist. `wishlist_item_id` is saved from the response."
+                    }
+                },
+                {
+                    "name": "Remove from Wishlist",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [{ "key": "Accept", "value": "application/json" }],
+                        "url": {
+                            "raw": "{{base_url}}/wishlist/items/{{wishlist_item_id}}",
+                            "host": ["{{base_url}}"],
+                            "path": ["wishlist", "items", "{{wishlist_item_id}}"]
+                        },
+                        "description": "Removes an item from the wishlist by `wishlist_item_id`."
                     }
                 }
             ]
