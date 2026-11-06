@@ -20,7 +20,7 @@
             "key": "base_url",
             "value": "http://localhost:8000/api",
             "type": "string",
-            "description": "Local: http://localhost:8000/api | Dev: https://turnlog-api-dev.up.railway.app/api | Production: https://turnlog-api-production-53cb.up.railway.app/api"
+            "description": "Local: http://localhost:8000/api | Dev: https://turnlog-api-dev-production.up.railway.app/api | Production: https://turnlog-api-production-53cb.up.railway.app/api"
         },
         {
             "key": "token",
