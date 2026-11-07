@@ -56,7 +56,7 @@
                                 "exec": [
                                     "const json = pm.response.json();",
                                     "if (json.data && json.data.token) {",
-                                    "    pm.collectionVariables.set('token', json.data.token);",
+                                    "    pm.environment.set('token', json.data.token);",
                                     "    console.log('Token saved.');",
                                     "}",
                                     "pm.test('Status 201', () => pm.response.to.have.status(201));",
@@ -92,7 +92,7 @@
                                 "exec": [
                                     "const json = pm.response.json();",
                                     "if (json.data && json.data.token) {",
-                                    "    pm.collectionVariables.set('token', json.data.token);",
+                                    "    pm.environment.set('token', json.data.token);",
                                     "    console.log('Token saved.');",
                                     "}",
                                     "pm.test('Status 200', () => pm.response.to.have.status(200));",
@@ -192,7 +192,7 @@
                                     "const json = pm.response.json();",
                                     "pm.test('Returns array', () => pm.expect(json.data).to.be.an('array'));",
                                     "if (json.data && json.data[0] && json.data[0].id) {",
-                                    "    pm.collectionVariables.set('discogs_id', String(json.data[0].id));",
+                                    "    pm.environment.set('discogs_id', String(json.data[0].id));",
                                     "    console.log('discogs_id saved:', json.data[0].id);",
                                     "}"
                                 ],
@@ -226,7 +226,7 @@
                                     "const json = pm.response.json();",
                                     "pm.test('Has release id', () => pm.expect(json.data.id).to.be.a('number'));",
                                     "if (json.data && json.data.id) {",
-                                    "    pm.collectionVariables.set('discogs_id', String(json.data.id));",
+                                    "    pm.environment.set('discogs_id', String(json.data.id));",
                                     "    console.log('discogs_id saved:', json.data.id);",
                                     "}"
                                 ],
@@ -323,7 +323,7 @@
                                     "const json = pm.response.json();",
                                     "pm.test('Has item id', () => pm.expect(json.data.id).to.be.a('number'));",
                                     "if (json.data && json.data.id) {",
-                                    "    pm.collectionVariables.set('item_id', String(json.data.id));",
+                                    "    pm.environment.set('item_id', String(json.data.id));",
                                     "    console.log('item_id saved:', json.data.id);",
                                     "}"
                                 ],
@@ -415,7 +415,7 @@
                                     "const json = pm.response.json();",
                                     "pm.test('Has item id', () => pm.expect(json.data.id).to.be.a('number'));",
                                     "if (json.data && json.data.id) {",
-                                    "    pm.collectionVariables.set('wishlist_item_id', String(json.data.id));",
+                                    "    pm.environment.set('wishlist_item_id', String(json.data.id));",
                                     "    console.log('wishlist_item_id saved:', json.data.id);",
                                     "}"
                                 ],
